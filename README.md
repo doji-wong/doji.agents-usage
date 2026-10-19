@@ -14,6 +14,52 @@ cross-device aggregation); `Agent.qml` is the per-record file watcher.
 > [!TIP]
 > A higher-resolution MP4 walkthrough is available in [assets/walkthrough.mp4](assets/walkthrough.mp4).
 
+## Installation
+
+### Using Omarchy Plugin Manager (Recommended)
+
+Install and enable the plugin directly with the `omarchy` CLI:
+
+```bash
+omarchy plugin add https://github.com/doji-wong/doji.agents-usage --enable
+```
+
+If you previously had the stock built-in `omarchy.agents` widget enabled in your bar, disable it first:
+
+```bash
+omarchy plugin disable omarchy.agents
+omarchy plugin enable doji.agents
+```
+
+You can optionally place it in your preferred bar section (e.g. right):
+
+```bash
+omarchy bar move doji.agents --section right
+```
+
+### Manual Installation (Git Clone)
+
+Clone the repository directly into your Omarchy plugins directory:
+
+```bash
+git clone https://github.com/doji-wong/doji.agents-usage.git ~/.config/omarchy/plugins/doji.agents
+omarchy plugin enable doji.agents
+```
+
+### Updating
+
+Update to the latest version at any time:
+
+```bash
+omarchy plugin update doji.agents
+```
+
+Or via git:
+
+```bash
+cd ~/.config/omarchy/plugins/doji.agents && git pull
+```
+
 ## Panel
 
 - **Hero** — the mark, the tool, and the plan it runs on ("Max 20x", "Pro").
@@ -50,7 +96,7 @@ disk waiting for it.
 That self-hiding is why the widget ships in the default bar layout: a machine
 that has never run an AI coding agent draws nothing, and the icon arrives on
 its own the first time a scan finds usage. Drop it with
-`omarchy plugin disable omarchy.agents`.
+`omarchy plugin disable doji.agents`.
 
 ## Data
 
@@ -136,13 +182,14 @@ only adds the meter and the spent-of-funded line under the real figure.
 - Bar icon: left = panel, right = launch agent, middle = next subscription.
 - Panel: `h`/`l` switch subscription, `j`/`k` scroll, `r` or Enter refresh,
   Tab moves to the neighboring bar panel, Esc closes.
-- IPC: `omarchy-shell omarchy.agents <open|close|toggle|refresh|next>`.
+- IPC: `omarchy-shell doji.agents <open|close|toggle|refresh|next|select|sort>`
+  (the legacy alias `omarchy.agents` is also supported).
 
 ## Settings
 
 Settings live in the widget's entry in `~/.config/omarchy/shell.json`. The
 top-level keys can be set with
-`omarchy bar set omarchy.agents <key> <value>`:
+`omarchy bar set doji.agents <key> <value>`:
 
 | Key | Default | What it does |
 |---|---|---|
@@ -155,8 +202,8 @@ top-level keys can be set with
 Numbers need `--json`, or they land in `shell.json` as strings:
 
 ```bash
-omarchy bar set omarchy.agents refreshIntervalSec 300 --json
-omarchy bar set omarchy.agents syncDir '~/Sync/agent-usage'
+omarchy bar set doji.agents refreshIntervalSec 300 --json
+omarchy bar set doji.agents syncDir '~/Sync/agent-usage'
 ```
 
 Per-agent enablement is nested, and `set` writes its key literally rather
@@ -164,7 +211,7 @@ than walking a dotted path — so pass the whole `providers` object as JSON (or
 edit `shell.json` directly):
 
 ```bash
-omarchy bar set omarchy.agents providers '{
+omarchy bar set doji.agents providers '{
   "claude": { "enabled": true },
   "codex": { "enabled": false },
   "fireworks": { "enabled": true }
