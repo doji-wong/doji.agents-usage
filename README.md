@@ -7,6 +7,13 @@ and draws whatever appears there. `Panel.qml` owns the bar button and the
 popup; `Main.qml` discovers and watches the records (and handles the optional
 cross-device aggregation); `Agent.qml` is the per-record file watcher.
 
+<p align="center">
+  <img src="assets/walkthrough.gif" alt="Agents Panel Walkthrough" width="420" />
+</p>
+
+> [!TIP]
+> A higher-resolution MP4 walkthrough is available in [assets/walkthrough.mp4](assets/walkthrough.mp4).
+
 ## Panel
 
 - **Hero** — the mark, the tool, and the plan it runs on ("Max 20x", "Pro").
