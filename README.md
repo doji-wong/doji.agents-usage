@@ -1,24 +1,51 @@
-# Agents
+<div align="center">
 
-One bar icon and one panel for every AI coding subscription on the machine.
-The panel is strictly a display: it watches the usage records that
-`omarchy-agent-usage-update` writes to `~/.local/state/omarchy/agents/usage/`
-and draws whatever appears there. `Panel.qml` owns the bar button and the
-popup; `Main.qml` discovers and watches the records (and handles the optional
-cross-device aggregation); `Agent.qml` is the per-record file watcher.
+# 🤖 doji.agents
 
-<p align="center">
-  <img src="assets/walkthrough.gif" alt="Agents Panel Walkthrough" width="420" />
-</p>
+**A native Omarchy status bar widget and interactive dashboard for monitoring AI coding agent subscriptions, rate limits, and token usage.**
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Platform: Omarchy](https://img.shields.io/badge/Platform-Omarchy-1793d1.svg?logo=archlinux&logoColor=white)](https://github.com/doji-wong/doji.agents-usage)
+[![Framework: Quickshell](https://img.shields.io/badge/Framework-Quickshell%20%2F%20QML-41cd52.svg?logo=qt&logoColor=white)](https://quickshell.outfoxxed.me/)
+[![Display: Wayland](https://img.shields.io/badge/Display-Wayland-orange.svg)](https://wayland.freedesktop.org/)
+
+<br />
+
+<img src="assets/walkthrough.gif" alt="Agents Panel Walkthrough" width="460" />
+
+<p><em>Live overview board, window filters, token telemetry, and provider detail inspector.</em></p>
 
 > [!TIP]
-> A higher-resolution MP4 walkthrough is available in [assets/walkthrough.mp4](assets/walkthrough.mp4).
+> A full-fidelity high-resolution walkthrough is available at [**assets/walkthrough.mp4**](assets/walkthrough.mp4).
 
-## Installation
+</div>
 
-### Using Omarchy Plugin Manager (Recommended)
+---
 
-Install and enable the plugin directly with the `omarchy` CLI:
+## 🌟 Key Features
+
+- **Unified Status Bar Indicator**: Displays a clean, dynamic status icon that reveals aggregate active agent state at a glance.
+- **Smart Self-Hiding**: Completely disappears when no AI coding activity or subscriptions are detected on the machine—never clutters your status bar with empty widgets.
+- **Overview Board**:
+  - **All Agents View**: Scan every enabled provider in one unified board.
+  - **5-Hour & Weekly Scopes**: Instant filtering to see which subscriptions have active short-term (5-hour) or weekly allowances, ranked lowest-remaining first.
+- **Detailed Provider Inspection**:
+  - **Rate Limit Gauges**: Real-time meters tracking percentage of usage remaining alongside precise reset countdowns (`resets in 1h 24m`, `resets in 5d 3h`).
+  - **Tokens by Day**: 7-day activity bar charts with hover metrics detailing session counts and daily consumption.
+  - **Tokens by Model**: Granular model breakdown with visual load bars, filter search, and input/output/cache splits.
+  - **Prepaid Balance Gauges**: Fuel-gauge meters for prepaid providers (such as Fireworks) draining toward empty with funded-vs-spent tracking.
+- **Multi-Account & Multi-Device Sync**:
+  - Independent account tracking within the same provider (e.g. personal vs. team accounts).
+  - Cross-workstation aggregation: seamlessly merge snapshots across multiple laptops or desktops via Syncthing, Dropbox, or rsync.
+- **First-Class Keyboard Navigation & IPC**: Full vim-style keyboard navigation (`h`/`l`, `j`/`k`, `r`, `Esc`) and complete shell IPC integration via `omarchy-shell`.
+
+---
+
+## 🚀 Installation
+
+### 1. Using Omarchy Plugin Manager (Recommended)
+
+Install and enable `doji.agents` directly via the official `omarchy` CLI:
 
 ```bash
 omarchy plugin add https://github.com/doji-wong/doji.agents-usage --enable
@@ -31,133 +58,189 @@ omarchy plugin disable omarchy.agents
 omarchy plugin enable doji.agents
 ```
 
-You can optionally place it in your preferred bar section (e.g. right):
+#### Bar Placement
+
+Place the widget in your preferred bar section (e.g. right):
 
 ```bash
 omarchy bar move doji.agents --section right
 ```
 
-### Manual Installation (Git Clone)
+---
 
-Clone the repository directly into your Omarchy plugins directory:
+### 2. Manual Installation (Git Clone)
+
+Clone the repository directly into your local Omarchy plugins directory:
 
 ```bash
 git clone https://github.com/doji-wong/doji.agents-usage.git ~/.config/omarchy/plugins/doji.agents
 omarchy plugin enable doji.agents
 ```
 
-### Updating
+---
 
-Update to the latest version at any time:
+### 🔄 Updating
+
+Update to the latest release at any time:
 
 ```bash
 omarchy plugin update doji.agents
 ```
 
-Or via git:
+Or pull the latest changes via Git:
 
 ```bash
 cd ~/.config/omarchy/plugins/doji.agents && git pull
 ```
 
-## Panel
+---
 
-- **Hero** — the mark, the tool, and the plan it runs on ("Max 20x", "Pro").
-  Auth and endpoint problems replace the plan line and repeat in a card.
-- **Subscription switch** — one chip per enabled agent (`h`/`l` or click).
-  It appears only when more than one agent is enabled.
-- **Limits** — the percentage of each allowance used, a matching meter, and
-  the time until the session or weekly window resets.
-- **Account and model scope** — separate account records stay separate, and a
-  model dropdown can scope today's usage, model rows, and any model-specific
-  limits without pretending account-wide limits are model-specific.
-- **Balance** — prepaid agents report a credit ledger instead of limits:
-  remaining credit, a fuel-gauge meter that drains toward empty, and
-  funded-versus-spent detail.
-- **Tokens by day** — one row per day for the last week: day, bar, tokens, with today
-  bolded at the bottom. Hover today for its prompt and session count.
-- **Tokens by model** — tokens per model with the bar behind each row scaled
-  to the heaviest model,
-  the same way the weekly chart scales to its busiest day. Hover for the
-  input / output / cache split.
-- **Overview views** — show all agents, or scope the list to matching 5-hour or
-  weekly windows; scoped views rank the lowest remaining allowances first. Each
-  overview card shows one relevant window, balance, or status; open **Inspect**
-  for model rows, token history, prompts, and secondary windows. Longer monthly
-  windows stay visible in All rather than being mislabeled as weekly.
+## 📊 Supported Providers & Collectors
 
-A subscription appears when it is enabled in settings and has usage, limits, a
-balance, or a collection/auth status to explain — on this machine or on a
-synced one. With one such agent there is no switch row at all; with none, the
-module leaves the bar entirely rather than sitting there with nothing to say.
-A CLI installed mid-session shows up at the next refresh, so nothing polls the
-disk waiting for it.
+`doji.agents` reads modular JSON records written to `~/.local/state/omarchy/agents/usage/` by `omarchy-agent-usage-update`.
 
-That self-hiding is why the widget ships in the default bar layout: a machine
-that has never run an AI coding agent draws nothing, and the icon arrives on
-its own the first time a scan finds usage. Drop it with
-`omarchy plugin disable doji.agents`.
+| Provider | Tracked Limits & Quotas | Local Telemetry & Stats | Auth / Config Source |
+|:---|:---|:---|:---|
+| **Google Antigravity** | 5h session quota + weekly window | Transcripts grouped by model (Gemini 3.8 Flash, Gemini 4 Argon, Claude 3.5, etc.) | Local session state |
+| **Anthropic Claude Code** | Anthropic OAuth limits (5h session + 7-day weekly) | Project transcripts (`~/.claude/projects`), opencode sessions, `stats-cache.json` | `CLAUDE_CONFIG_DIR`, OAuth credentials |
+| **OpenAI Codex** | App-server RPC limits & tier status | Native Codex CLI session logs, pi, and opencode sessions | `CODEX_HOME`, `~/.codex` |
+| **Fireworks AI** | Estimated prepaid ledger (funding minus rated costs) | Fireworks billing API, daily tokens & model usage (last 30 days) | `FIREWORKS_API_KEY`, `~/.fireworks/auth.ini`, `~/.config/omarchy/agents/fireworks.json` |
 
-## Data
+---
 
-Each agent is one JSON record in `~/.local/state/omarchy/agents/usage/`,
-written by `omarchy-agent-usage-update`. That command runs one
-`omarchy-agent-usage-<agent>` collector per agent; the widget invokes it
-on its refresh timer and whenever you ask for a refresh, and picks up any
-record that lands in the directory regardless of who wrote it.
+## 🎮 Navigation & Keyboard Shortcuts
 
-Adding an agent therefore never touches this plugin: ship a collector that
-prints the record contract (see the `claude` and `codex` collectors in
-`bin/`), and the panel gains a tab. An `assets/<id>.svg` mark is optional —
-with an `assets/<id>-light.svg` twin if the mark needs a dark variant for
-light surfaces — and the bar glyph stands in when there is none.
+The panel is optimized for seamless keyboard and pointer interaction:
 
-| Collector | Limits | Local stats |
-|---|---|---|
-| `antigravity` | Antigravity session + weekly windows | Antigravity transcripts grouped by model |
-| `claude` | Anthropic's OAuth usage endpoint (5-hour session + 7-day weekly) | `~/.claude/projects` transcripts, opencode sessions on an Anthropic provider, plus `stats-cache.json` and `history.jsonl` as fallback |
-| `codex` | The Codex app-server RPC | native Codex CLI session files (plus pi and opencode sessions) |
-| `fireworks` | Estimated prepaid balance: configured funding minus rated account costs | Fireworks billing API, grouped by day and model for the last 30 days |
+### Mouse Controls
+- **Left Click**: Open panel / Toggle dashboard.
+- **Middle Click**: Cycle directly to the next subscription tab.
+- **Right Click**: Launch default coding agent workspace.
 
-### Account and model records
+### Keyboard Shortcuts (When Panel is Focused)
+| Key | Action |
+|:---|:---|
+| <kbd>h</kbd> / <kbd>l</kbd> | Navigate to previous / next subscription tab |
+| <kbd>j</kbd> / <kbd>k</kbd> | Scroll dashboard content up / down |
+| <kbd>5</kbd> | In Overview: filter to **5-hour session** agents |
+| <kbd>w</kbd> | In Overview: filter to **Weekly** window agents |
+| <kbd>a</kbd> | In Overview: show **All** agents |
+| <kbd>r</kbd> or <kbd>Enter</kbd> | Trigger instant telemetry refresh |
+| <kbd>Tab</kbd> | Transfer focus to adjacent bar panel |
+| <kbd>Esc</kbd> | Close panel |
 
-The panel treats each JSON file in the usage directory as one independent
-account record. Collectors may add these optional fields without breaking older
-versions:
+---
+
+## 💻 CLI & IPC Control
+
+You can inspect, navigate, and control the widget programmatically from terminal commands, custom scripts, or Hyprland keybindings via `omarchy-shell`:
+
+```bash
+# Open, close, or toggle the panel
+omarchy-shell doji.agents open
+omarchy-shell doji.agents close
+omarchy-shell doji.agents toggle
+
+# Refresh telemetry records immediately
+omarchy-shell doji.agents refresh
+
+# Switch to the next subscription tab
+omarchy-shell doji.agents next
+
+# Select a specific provider or overview
+omarchy-shell doji.agents select __overview__
+omarchy-shell doji.agents select antigravity
+omarchy-shell doji.agents select codex
+omarchy-shell doji.agents select claude
+omarchy-shell doji.agents select fireworks
+
+# Set overview sort & filter mode
+omarchy-shell doji.agents sort session   # 5-hour window view
+omarchy-shell doji.agents sort weekly    # Weekly window view
+omarchy-shell doji.agents sort all       # All agents view
+```
+
+*(The legacy alias `omarchy.agents` remains supported for compatibility).*
+
+---
+
+## ⚙️ Configuration & Settings
+
+Settings are stored under the widget's configuration block in `~/.config/omarchy/shell.json` and can be adjusted with the `omarchy bar set` command.
+
+| Configuration Key | Type | Default | Description |
+|:---|:---:|:---:|:---|
+| `refreshIntervalSec` | `number` | `900` (15m) | Telemetry regeneration interval in seconds |
+| `syncMode` | `string` | `"Off"` | Set to `"On"` to export local snapshots and merge multi-machine metrics |
+| `syncDir` | `string` | `""` | Synchronized folder path (e.g. `~/Sync/agent-usage`, Dropbox, Syncthing) |
+| `syncFileName` | `string` | `<hostname>.json` | File name for this workstation's exported snapshot |
+| `syncDeviceId` | `string` | `<hostname>` | Stable machine identifier recorded inside the snapshot |
+| `providers` | `object` | *all enabled* | Per-agent enablement toggle map |
+
+### Example Configuration Commands
+
+```bash
+# Set refresh interval to 5 minutes (300 seconds)
+omarchy bar set doji.agents refreshIntervalSec 300 --json
+
+# Set synchronized directory for cross-device metrics
+omarchy bar set doji.agents syncDir '~/Sync/agent-usage'
+omarchy bar set doji.agents syncMode 'On'
+
+# Toggle individual providers
+omarchy bar set doji.agents providers '{
+  "antigravity": { "enabled": true },
+  "claude": { "enabled": true },
+  "codex": { "enabled": true },
+  "fireworks": { "enabled": false }
+}' --json
+```
+
+---
+
+## 🗄️ Architecture & Data Contract
+
+```
+┌────────────────────────────────────────────────────────┐
+│                   Omarchy Status Bar                   │
+│         [  󱚣 doji.agents  ]  ◄── Panel.qml             │
+└───────────────────────────┬────────────────────────────┘
+                            │
+               watches ~/.local/state/omarchy/agents/usage/
+                            │
+        ┌───────────────────┼───────────────────┐
+        ▼                   ▼                   ▼
+  antigravity.json     claude.json          codex.json ...
+        ▲                   ▲                   ▲
+        │                   │                   │
+  ┌─────┴───────────────────┴───────────────────┴─────┐
+  │         omarchy-agent-usage-update                │
+  │   Runs independent modular collectors per agent   │
+  └───────────────────────────────────────────────────┘
+```
+
+The panel treats each JSON file in the usage directory as one independent account record.
+
+### Account and Model Records Contract
+
+Collectors may supply these additive fields without breaking older versions:
 
 | Field | Meaning |
-|---|---|
-| `providerId` | Stable service id used to group accounts, such as `codex` |
-| `accountId` | Stable account id inside that service |
+|:---|:---|
+| `providerId` | Stable service ID used to group accounts, such as `codex` |
+| `accountId` | Stable account ID inside that service |
 | `accountName` / `accountEmail` | Human-readable account identity shown in the panel |
 | `currentModel` | The model currently selected by the provider |
 | `availableModels` | Models the provider can currently expose |
-| `limits[].modelId` | Optional model id for a model-scoped allowance |
+| `limits[].modelId` | Optional model ID for a model-scoped allowance |
 | `recentDaysByModel` | Optional per-model daily token history |
 
-If the optional fields are absent, the panel falls back to the record's
-existing `id` and `name`. Separate records are never merged, so limits and
-balances cannot leak from one account into another. The widget does not handle
-credentials or create accounts; collectors remain responsible for writing one
-record per account.
+If the optional fields are absent, the panel falls back to the record's existing `id` and `name`. Separate records are never merged, preventing limits or balances from leaking between accounts.
 
-Claude limits need a signed-in CLI; without credentials the panel says so and
-falls back to local stats only. A non-default Claude directory is honored via
-`CLAUDE_CONFIG_DIR`, Codex via `CODEX_HOME`. Fireworks reads
-`FIREWORKS_API_KEY` and `FIREWORKS_ACCOUNT_ID` first, then
-`~/.fireworks/auth.ini` (which `firectl set-api-key` creates), then the key
-opencode stores in `~/.local/share/opencode/auth.json` when Fireworks is
-signed in there.
+### Authentication & Provider Details
 
-### Fireworks balance
-
-The collector first asks the account's `:getBalance` endpoint for the real
-prepaid ledger. That endpoint exists but is permission-gated, and as of
-August 2026 no console-issued API key passes it — Fireworks appears to
-reserve it for the dashboard session. The probe stays because it is cheap
-and the live figure lights up automatically if Fireworks ever opens it to
-keys. Until then the collector falls back to estimating the balance from
-configuration in `~/.config/omarchy/agents/fireworks.json`:
+- **Claude Code**: Needs a signed-in CLI; without credentials the panel falls back to local stats only. A non-default Claude directory is honored via `CLAUDE_CONFIG_DIR`, Codex via `CODEX_HOME`.
+- **Fireworks AI**: Reads `FIREWORKS_API_KEY` and `FIREWORKS_ACCOUNT_ID` first, then `~/.fireworks/auth.ini`, then `~/.local/share/opencode/auth.json`. Fireworks balance can be tracked via `~/.config/omarchy/agents/fireworks.json`:
 
 ```json
 {
@@ -167,70 +250,35 @@ configuration in `~/.config/omarchy/agents/fireworks.json`:
 }
 ```
 
-Set `fundedAmount` to the credits purchased and optionally `fundedAt` to the
-purchase date; with no date, the collector uses the account creation time. It
-subtracts rated account costs and the panel labels the result as estimated.
-For a later top-up, increase `fundedAmount` by the new credit while keeping
-the original `fundedAt`, so both the funding and spend still cover the same
-period. `accountId` only matters when one API key can access several
-accounts. Without a configured `fundedAmount` the tab still shows token
-usage, just no balance. With a live ledger, `fundedAmount` is optional and
-only adds the meter and the spent-of-funded line under the real figure.
+### Adding New Agent Collectors
 
-## Interactions
+Adding support for an entirely new AI agent requires **zero modifications** to this QML plugin. Simply add an executable collector script that writes a standard JSON record conforming to the contract:
 
-- Bar icon: left = panel, right = launch agent, middle = next subscription.
-- Panel: `h`/`l` switch subscription, `j`/`k` scroll, `r` or Enter refresh,
-  Tab moves to the neighboring bar panel, Esc closes.
-- IPC: `omarchy-shell doji.agents <open|close|toggle|refresh|next|select|sort>`
-  (the legacy alias `omarchy.agents` is also supported).
-
-## Settings
-
-Settings live in the widget's entry in `~/.config/omarchy/shell.json`. The
-top-level keys can be set with
-`omarchy bar set doji.agents <key> <value>`:
-
-| Key | Default | What it does |
-|---|---|---|
-| `refreshIntervalSec` | `900` | How often the usage records regenerate |
-| `syncMode` | `"Off"` | `"On"` writes this machine's snapshot and merges the others |
-| `syncDir` | `""` | A folder synced by Syncthing, Dropbox, rsync, … |
-| `syncFileName` | `<hostname>.json` | This machine's snapshot file |
-| `syncDeviceId` | hostname | Stable device name inside the snapshot |
-
-Numbers need `--json`, or they land in `shell.json` as strings:
-
-```bash
-omarchy bar set doji.agents refreshIntervalSec 300 --json
-omarchy bar set doji.agents syncDir '~/Sync/agent-usage'
+```json
+{
+  "providerId": "myagent",
+  "name": "My Agent",
+  "accountName": "user@example.com",
+  "limits": [
+    {
+      "label": "5h Session",
+      "percentUsed": 42.5,
+      "resetAt": "2026-10-19T21:00:00Z"
+    }
+  ],
+  "recentDays": [
+    { "date": "2026-10-19", "tokens": 1250000 }
+  ],
+  "models": [
+    { "name": "custom-model", "tokens": 1250000 }
+  ]
+}
 ```
 
-Per-agent enablement is nested, and `set` writes its key literally rather
-than walking a dotted path — so pass the whole `providers` object as JSON (or
-edit `shell.json` directly):
+Once the JSON file lands in `~/.local/state/omarchy/agents/usage/`, the dashboard automatically discovers it, adds a dedicated tab, and binds its metrics in real time.
 
-```bash
-omarchy bar set doji.agents providers '{
-  "claude": { "enabled": true },
-  "codex": { "enabled": false },
-  "fireworks": { "enabled": true }
-}' --json
-```
+---
 
-`enabled` defaults to `true` for every discovered agent; set it to `false` to
-hide a subscription that is installed. Disabled agents are also skipped when
-the records regenerate.
+## 📄 License
 
-With `syncMode` on, every `*.json` snapshot in `syncDir` is merged, so today,
-the last 7 days, and the all-time totals cover every machine you code on —
-active days are unioned by date rather than summed. Rate limits stay
-per-account and are never merged. A record may declare `"scope": "account"`
-when its stats are account-global rather than machine-local (Fireworks'
-billing API); those merge by taking the widest value instead of summing, so
-the same account synced from two machines is not counted twice.
-
-One caveat on "all-time": the Codex collector only reads native session files
-touched in the last 30 days, and Fireworks requests the last 30 days from its
-billing API, so their totals and day counts cover that window. Claude's cover
-every transcript still on disk.
+Distributed under the [MIT License](LICENSE). Built for the Omarchy desktop ecosystem.
