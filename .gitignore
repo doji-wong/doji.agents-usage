@@ -1,0 +1,7 @@
+*.bak
+__pycache__/
+*.py[cod]
+.pytest_cache/
+*.swp
+*~
+.DS_Store
