@@ -21,5 +21,17 @@
 - [x] Task 8: Fix tab bar overflow and collisions — convert provider switch to Flickable with natural button widths and auto-scroll, eliminating text overflow.
 - [x] Task 9: Optimize overview tab to only display authenticated agents with active usage/windows, keeping unauthenticated agents accessible in the top tab navigation for setup.
 - [x] Task 10: Separate the view for Weekly and 5-hour into dedicated views with interactive view switching (5h, Weekly, All), isolated allowance meters, and keyboard shortcuts (5, W, A).
+- [x] Task 11: Document Architecture Decision Records (ADRs) and refine developer documentation (ADR-001 through ADR-004, README references, AGENT.md contract).
 - [x] Checkpoint: Contract tests pass and the manifest validates.
 - [x] Live Quickshell verification — hot reload and IPC calls verified in the running Wayland session without errors.
+
+## Brand Identity & Neo-Tactile Overhaul
+
+- [x] Task 12: Synthesize reference boards into official DOJI Neo-Tactile Brand Identity System (`brand-identity-system.md` & `brand-showcase.html`).
+- [x] Task 13: Establish DOJI brand tokens in `Panel.qml` (`dojiKineticOrange`, `dojiHyperLime`, `dojiTechnicalBlue`, `dojiSolarAmber`, `dojiObsidian`, `dojiGraphite`).
+- [x] Task 14: Upgrade `Meter` component with recessed grooved beds, kinetic accent coloration, alarming glow, and hardware-style leading-edge indicator beads.
+- [x] Task 15: Enhance `DayRow` component with high-voltage Hyper Lime today indicator and tabular telemetry layout.
+- [x] Task 16: Accentuate overview mode filter buttons (`5h`, `Weekly`, `All`) with Kinetic Orange active states.
+- [x] Task 17: Create vector brand marks (`assets/doji.svg`, `assets/doji-light.svg`, `doji-brand-mark.svg`).
+- [x] Task 18: Author ADR-005 documenting the Neo-Tactile Brand Identity and update `README.md`.
+- [x] Checkpoint: Contract tests pass and QML remains balanced.

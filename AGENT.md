@@ -36,6 +36,7 @@ describes.
 - `Agent.qml` — one JSON record watcher and parser.
 - `README.md` — user-facing behavior, settings, and record contract.
 - `manifest.json` — plugin metadata, entry point, defaults, and settings schema.
+- `docs/decisions/` — Architecture Decision Records (ADRs) capturing design rationale, constraints, and trade-offs.
 - `tests/test_widget_contract.py` — lightweight manifest and QML contract tests.
 - `assets/` — provider marks and light/dark variants.
 - `SPEC-widget-refinement.md` — technical specification for the current
@@ -48,7 +49,7 @@ describes.
 
 Before editing:
 
-1. Read the relevant PRD section and the files named by the request.
+1. Read the relevant PRD section, existing ADRs in `docs/decisions/`, and the files named by the request.
 2. Inspect the existing implementation and related tests.
 3. State assumptions about scope, data shape, and behavior.
 4. Check for contradictions between the PRD, technical spec, task files, and
@@ -78,7 +79,7 @@ Do not skip from a vague request directly to broad QML edits.
 - Prefer the smallest change that satisfies the approved requirement.
 - Preserve unrelated user changes and existing behavior.
 - Add or update a contract test when behavior can be checked statically.
-- Keep product decisions in the PRD and technical decisions in the spec/plan.
+- Keep product decisions in the PRD, technical decisions in the spec/plan, and major architectural decisions recorded in `docs/decisions/`.
 - Do not add speculative abstractions, providers, settings, or dependencies.
 
 ## Product and data boundaries
@@ -158,6 +159,7 @@ A task is complete only when:
 - the runtime behavior is verified or the limitation is documented;
 - no unrelated files or behavior were changed;
 - the PRD/spec/task documents reflect any changed decision;
+- ADRs in `docs/decisions/` capture any new architectural decisions or trade-offs;
 - the final report names changed files, checks run, and known follow-ups.
 
 ## Agent communication contract

@@ -7,6 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: Omarchy](https://img.shields.io/badge/Platform-Omarchy-1793d1.svg?logo=archlinux&logoColor=white)](https://github.com/doji-wong/doji.agents-usage)
 [![Framework: Quickshell](https://img.shields.io/badge/Framework-Quickshell%20%2F%20QML-41cd52.svg?logo=qt&logoColor=white)](https://quickshell.outfoxxed.me/)
+[![Design: DOJI Neo-Tactile](https://img.shields.io/badge/Design-DOJI%20Neo--Tactile-ff5500.svg)](assets/doji.svg)
 [![Display: Wayland](https://img.shields.io/badge/Display-Wayland-orange.svg)](https://wayland.freedesktop.org/)
 
 <br />
@@ -38,6 +39,17 @@
   - Independent account tracking within the same provider (e.g. personal vs. team accounts).
   - Cross-workstation aggregation: seamlessly merge snapshots across multiple laptops or desktops via Syncthing, Dropbox, or rsync.
 - **First-Class Keyboard Navigation & IPC**: Full vim-style keyboard navigation (`h`/`l`, `j`/`k`, `r`, `Esc`) and complete shell IPC integration via `omarchy-shell`.
+
+---
+
+## 🎨 Brand Identity & Design Language
+
+`doji.agents` embodies the **DOJI Neo-Tactile Telemetry** design system—a fusion of Swiss modernist information hierarchy and high-precision tactile hardware affordances:
+
+- **Continuous Curvature**: $G^2$ squircle geometry creating organic, tactile card chassis.
+- **Atmospheric Polarity**: Deep *Obsidian Void* (`#0B0C0E`) paired with crisp *Alabaster Bone* (`#F5F4EE`).
+- **Kinetic Beacons**: High-voltage *Safety Kinetic Orange* (`#FF5500`) for urgent limits and *Telemetry Hyper Lime* (`#D0FF00`) for active token throughput.
+- **Physical Affordances**: Recessed grooved slider beds, segmented phosphor meters, micro-caps telemetry badges, and tactile indicator beads.
 
 ---
 
@@ -221,6 +233,13 @@ omarchy bar set doji.agents providers '{
 
 The panel treats each JSON file in the usage directory as one independent account record.
 
+For deep dives into design rationale, constraints, and trade-offs, see the [Architecture Decision Records](docs/decisions/README.md):
+- [ADR-001: File-Based State Discovery via Modular External Collectors](docs/decisions/ADR-001-file-based-state-and-modular-collectors.md)
+- [ADR-002: Multi-Account Isolation and Additive Record Contract](docs/decisions/ADR-002-multi-account-isolation-and-additive-schema.md)
+- [ADR-003: Overview Board Window Prioritization and Dual-Meter Display](docs/decisions/ADR-003-overview-board-window-prioritization.md)
+- [ADR-004: Cross-Device Snapshot Synchronization via File Replication](docs/decisions/ADR-004-cross-device-snapshot-synchronization.md)
+- [ADR-005: Neo-Tactile Brand Identity and Design System](docs/decisions/ADR-005-neo-tactile-brand-identity-and-design-system.md)
+
 ### Account and Model Records Contract
 
 Collectors may supply these additive fields without breaking older versions:
@@ -276,6 +295,25 @@ Adding support for an entirely new AI agent requires **zero modifications** to t
 ```
 
 Once the JSON file lands in `~/.local/state/omarchy/agents/usage/`, the dashboard automatically discovers it, adds a dedicated tab, and binds its metrics in real time.
+
+---
+
+## 🛠️ Development & Testing
+
+Automated test suites and verification checks:
+
+```bash
+# Run contract and balance tests
+python3 -m unittest discover -s tests -v
+
+# Validate manifest syntax
+python3 -m json.tool manifest.json > /dev/null
+
+# Verify Quickshell engine version
+quickshell --version
+```
+
+For AI agent operating rules, coding conventions, and product gates, refer to [AGENT.md](AGENT.md).
 
 ---
 

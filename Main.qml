@@ -341,17 +341,17 @@ Item {
       balance: balanceValue(record.balance),
       scope: String(record.scope || (stats && stats.scope) || "device"),
 
-      todayPrompts: synced ? numberValue(stats.todayPrompts) : numberValue(record.todayPrompts),
-      todaySessions: synced ? numberValue(stats.todaySessions) : numberValue(record.todaySessions),
-      todayTotalTokens: synced ? numberValue(stats.todayTotalTokens) : numberValue(record.todayTotalTokens),
-      todayTokensByModel: synced ? (stats.todayTokensByModel || ({})) : (record.todayTokensByModel || ({})),
-      recentDays: synced ? (stats.recentDays || []) : (record.recentDays || []),
-      totalPrompts: synced ? numberValue(stats.totalPrompts) : numberValue(record.totalPrompts),
-      totalSessions: synced ? numberValue(stats.totalSessions) : numberValue(record.totalSessions),
-      activeDays: synced ? numberValue(stats.activeDays) : numberValue(record.activeDays),
-      modelUsage: synced ? (stats.modelUsage || ({})) : (record.modelUsage || ({})),
-      hasLocalStats: synced ? (stats.hasLocalStats !== false) : (record.hasLocalStats !== false),
-      hasPromptStats: synced ? (stats.hasPromptStats !== false) : (record.hasPromptStats !== false),
+      todayPrompts: numberValue(sourceStats.todayPrompts),
+      todaySessions: numberValue(sourceStats.todaySessions),
+      todayTotalTokens: numberValue(sourceStats.todayTotalTokens),
+      todayTokensByModel: sourceStats.todayTokensByModel || ({}),
+      recentDays: sourceStats.recentDays || [],
+      totalPrompts: numberValue(sourceStats.totalPrompts),
+      totalSessions: numberValue(sourceStats.totalSessions),
+      activeDays: numberValue(sourceStats.activeDays),
+      modelUsage: sourceStats.modelUsage || ({}),
+      hasLocalStats: sourceStats.hasLocalStats !== false,
+      hasPromptStats: sourceStats.hasPromptStats !== false,
 
       syncEnabled: synced,
       syncDeviceCount: deviceCount,
@@ -665,6 +665,7 @@ Item {
         activeDates: ({}),
         modelUsage: ({}),
         availableModels: [],
+        availableModelKeys: ({}),
         currentModel: "",
         recentDaysByModel: ({}),
         devices: ({})
@@ -698,16 +699,10 @@ Item {
           var availableKey = typeof availableModel === "object"
             ? JSON.stringify(availableModel)
             : String(availableModel || "")
-          var alreadyAvailable = false
-          for (var existingModel = 0; existingModel < acc.availableModels.length; existingModel++) {
-            var existing = acc.availableModels[existingModel]
-            var existingKey = typeof existing === "object" ? JSON.stringify(existing) : String(existing || "")
-            if (existingKey === availableKey) {
-              alreadyAvailable = true
-              break
-            }
+          if (availableKey !== "" && !acc.availableModelKeys[availableKey]) {
+            acc.availableModelKeys[availableKey] = true
+            acc.availableModels.push(availableModel)
           }
-          if (availableKey !== "" && !alreadyAvailable) acc.availableModels.push(availableModel)
         }
         if (stats.recentDaysByModel && typeof stats.recentDaysByModel === "object") {
           for (var modelId in stats.recentDaysByModel) {

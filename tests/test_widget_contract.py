@@ -114,6 +114,35 @@ class WidgetContractTests(unittest.TestCase):
         for field in ("providerId", "accountId", "accountName", "currentModel", "availableModels", "recentDaysByModel"):
             self.assertIn(f"`{field}`", readme)
 
+    def test_adrs_exist_and_conform_to_contract(self):
+        decisions_dir = ROOT / "docs" / "decisions"
+        self.assertTrue(decisions_dir.is_dir(), "docs/decisions/ must exist")
+        index = (decisions_dir / "README.md").read_text(encoding="utf-8")
+        self.assertIn("Architecture Decision Records", index)
+
+        adrs = [
+            "ADR-001-file-based-state-and-modular-collectors.md",
+            "ADR-002-multi-account-isolation-and-additive-schema.md",
+            "ADR-003-overview-board-window-prioritization.md",
+            "ADR-004-cross-device-snapshot-synchronization.md",
+            "ADR-005-neo-tactile-brand-identity-and-design-system.md",
+        ]
+        for adr in adrs:
+            path = decisions_dir / adr
+            self.assertTrue(path.is_file(), f"{adr} must exist")
+            content = path.read_text(encoding="utf-8")
+            for section in ("## Status", "## Date", "## Context", "## Decision", "## Consequences"):
+                self.assertIn(section, content, f"{adr} missing {section}")
+            self.assertIn(adr, index, f"ADR index must link to {adr}")
+
+    def test_readme_and_agent_reference_adrs(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        self.assertIn("docs/decisions/README.md", readme)
+        self.assertIn("Architecture Decision Records", readme)
+
+        agent = (ROOT / "AGENT.md").read_text(encoding="utf-8")
+        self.assertIn("docs/decisions/", agent)
+
 
 if __name__ == "__main__":
     unittest.main()

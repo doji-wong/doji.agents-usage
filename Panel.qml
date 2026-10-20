@@ -7,8 +7,8 @@ import qs.Ui
 
 Panel {
   id: root
-  moduleName: "omarchy.agents"
-  ipcTarget: ""
+  moduleName: "doji.agents"
+  ipcTarget: "doji.agents"
   manageIpc: false
 
   readonly property color foreground: bar ? bar.foreground : Color.foreground
@@ -17,6 +17,14 @@ Panel {
   readonly property color surface: Color.popups.background
   readonly property color track: Style.selectedFillFor(foreground, Color.accent)
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
+
+  // DOJI Neo-Tactile Brand Tokens
+  readonly property color dojiKineticOrange: "#FF5500"
+  readonly property color dojiHyperLime: "#D0FF00"
+  readonly property color dojiTechnicalBlue: "#0066FF"
+  readonly property color dojiSolarAmber: "#FFAE00"
+  readonly property color dojiObsidian: "#0B0C0E"
+  readonly property color dojiGraphite: "#14161A"
 
   readonly property var providers: usage.enabledProviders
   // The selection follows the unique account record, not the slot it happens
@@ -82,9 +90,7 @@ Panel {
     // data; the next refresh should safely return to the account total.
     var rows = modelRows(providerOrId, true)
     for (var i = 0; i < rows.length; i++) {
-      if (rows[i].id === selected || rows[i].name === selected
-          || normalizeModelKey(rows[i].id) === normalizeModelKey(selected)
-          || normalizeModelKey(rows[i].name) === normalizeModelKey(selected)) return selected
+      if (rowMatchesModel(rows[i], selected)) return selected
     }
     return "__all__"
   }
@@ -158,19 +164,18 @@ Panel {
   function selectRecord(value) {
     var target = String(value || "")
     if (target === "") return
+    var fallbackKey = ""
     for (var i = 0; i < providers.length; i++) {
-      if (recordKey(providers[i]) === target) {
+      var key = recordKey(providers[i])
+      if (key === target) {
         selectedProviderId = target
         return
       }
-    }
-    for (var j = 0; j < providers.length; j++) {
-      if (String(providers[j].providerId || "") === target) {
-        selectedProviderId = recordKey(providers[j])
-        return
+      if (fallbackKey === "" && String(providers[i].providerId || "") === target) {
+        fallbackKey = key
       }
     }
-    selectedProviderId = target
+    selectedProviderId = fallbackKey !== "" ? fallbackKey : target
   }
 
   function refreshNow() {
@@ -259,8 +264,7 @@ Panel {
     var keys = [normalizeModelKey(modelId)]
     var rows = modelRows(p, true)
     for (var i = 0; i < rows.length; i++) {
-      if (normalizeModelKey(rows[i].id) === normalizeModelKey(modelId)
-          || normalizeModelKey(rows[i].name) === normalizeModelKey(modelId)) {
+      if (rowMatchesModel(rows[i], modelId)) {
         keys.push(normalizeModelKey(rows[i].id))
         keys.push(normalizeModelKey(rows[i].name))
       }
@@ -268,7 +272,7 @@ Panel {
     return keys
   }
 
-  function limitModelId(entry, p) {
+  function limitModelId(entry, p, existingRows) {
     var explicit = entry && (entry.modelId || entry.model || entry.modelName)
     if (explicit && typeof explicit === "object")
       explicit = explicit.id || explicit.name || explicit.displayName
@@ -286,7 +290,16 @@ Panel {
     // "Session" rows account-wide.
     var titleKey = normalizeModelKey(entry && (entry.title || entry.label))
     if (titleKey === "") return ""
-    var rows = modelRows(p, true)
+    var rows = existingRows || []
+    if (rows.length === 0 && p) {
+      var avail = p.availableModels || []
+      for (var a = 0; a < avail.length; a++) {
+        var m = modelDescriptor(avail[a])
+        var k = normalizeModelKey(m.name)
+        if (k !== "" && titleKey.indexOf(k) >= 0) return m.id
+      }
+      return ""
+    }
     for (var i = 0; i < rows.length; i++) {
       var modelKey = normalizeModelKey(rows[i].name)
       if (modelKey !== "" && titleKey.indexOf(modelKey) >= 0) return rows[i].id
@@ -298,7 +311,7 @@ Panel {
     if (!modelId) return true
     var key = normalizeModelKey(modelId)
     for (var i = 0; i < selectedKeys.length; i++) {
-      if (key !== "" && key === selectedKeys[i]) return true
+      if (key !== "" && (key === selectedKeys[i] || selectedKeys[i].indexOf(key) >= 0 || key.indexOf(selectedKeys[i]) >= 0)) return true
     }
     return false
   }
@@ -340,8 +353,15 @@ Panel {
   // that is what stops the next prompt.
   function bindingWindow(p, selectedModelId) {
     var windows = limitWindows(p, selectedModelId)
+    var hasAccountWide = false
+    if (selectedModelId === "__all__") {
+      for (var a = 0; a < windows.length; a++) {
+        if (!windows[a].modelScoped) { hasAccountWide = true; break }
+      }
+    }
     var best = null
     for (var i = 0; i < windows.length; i++) {
+      if (selectedModelId === "__all__" && hasAccountWide && windows[i].modelScoped) continue
       if (!best || windows[i].percent > best.percent) best = windows[i]
     }
     return best
@@ -479,8 +499,26 @@ Panel {
     var weeklyWin = null
     var monthlyWin = null
 
+    var hasAccountWideWeekly = false
+    var hasAccountWideSession = false
+    var hasAccountWideMonthly = false
+    if (modelId === "__all__") {
+      for (var a = 0; a < wins.length; a++) {
+        if (!wins[a].modelScoped) {
+          if (wins[a].period === "weekly") hasAccountWideWeekly = true
+          else if (wins[a].period === "monthly") hasAccountWideMonthly = true
+          else hasAccountWideSession = true
+        }
+      }
+    }
+
     for (var i = 0; i < wins.length; i++) {
       var w = wins[i]
+      if (modelId === "__all__") {
+        if (w.period === "weekly" && hasAccountWideWeekly && w.modelScoped) continue
+        if (w.period === "monthly" && hasAccountWideMonthly && w.modelScoped) continue
+        if (w.period === "session" && hasAccountWideSession && w.modelScoped) continue
+      }
       if (w.period === "monthly") {
         if (!monthlyWin || w.percent > monthlyWin.percent) monthlyWin = w
       } else if (w.period === "weekly") {
@@ -509,13 +547,6 @@ Panel {
       if (!primary || candidates[i].window.percent > primary.window.percent) primary = candidates[i]
     }
     return primary
-  }
-
-  function overviewWindowTitle(window, kind) {
-    if (kind === "session") return "5h"
-    if (kind === "weekly") return "Weekly"
-    if (kind === "monthly") return "Monthly"
-    return window && window.title ? String(window.title) : "Limit"
   }
 
   function agentSortLabel(agent) {
@@ -676,6 +707,21 @@ Panel {
     return sortAgentList(filterAgentList(list, root.overviewSortMode), root.overviewSortMode)
   }
 
+  function tokenBreakdown(bucket) {
+    var b = bucket || {}
+    var input = Number(b.inputTokens || 0)
+    var output = Number(b.outputTokens || 0)
+    var cacheRead = Number(b.cacheReadInputTokens || 0)
+    var cacheWrite = Number(b.cacheCreationInputTokens || 0)
+    return {
+      input: input,
+      output: output,
+      cacheRead: cacheRead,
+      cacheWrite: cacheWrite,
+      total: input + output + cacheRead + cacheWrite
+    }
+  }
+
   function allModelRows() {
     var rows = []
     var provs = root.providers || []
@@ -683,13 +729,8 @@ Panel {
       var p = provs[i]
       var usageByModel = p.modelUsage || {}
       for (var id in usageByModel) {
-        var bucket = usageByModel[id] || {}
-        var input = Number(bucket.inputTokens || 0)
-        var output = Number(bucket.outputTokens || 0)
-        var cacheRead = Number(bucket.cacheReadInputTokens || 0)
-        var cacheWrite = Number(bucket.cacheCreationInputTokens || 0)
-        var total = input + output + cacheRead + cacheWrite
-        if (total > 0) {
+        var tokens = tokenBreakdown(usageByModel[id])
+        if (tokens.total > 0) {
           rows.push({
             id: String(id),
             name: usage.friendlyModelName(id),
@@ -697,11 +738,11 @@ Panel {
             providerId: p.providerId,
             accountName: p.accountName || "",
             agentId: root.recordKey(p),
-            total: total,
-            input: input,
-            output: output,
-            cacheRead: cacheRead,
-            cacheWrite: cacheWrite
+            total: tokens.total,
+            input: tokens.input,
+            output: tokens.output,
+            cacheRead: tokens.cacheRead,
+            cacheWrite: tokens.cacheWrite
           })
         }
       }
@@ -712,6 +753,13 @@ Panel {
 
   function normalizeModelKey(name) {
     return String(name || "").toLowerCase().replace(/[^a-z0-9]/g, "")
+  }
+
+  function rowMatchesModel(row, targetModel) {
+    if (!row || !targetModel) return false
+    if (row.id === targetModel || row.name === targetModel) return true
+    var key = normalizeModelKey(targetModel)
+    return key !== "" && (normalizeModelKey(row.id) === key || normalizeModelKey(row.name) === key)
   }
 
   function modelDescriptor(raw) {
@@ -754,15 +802,11 @@ Panel {
     }
 
     for (var id in usageByModel) {
-      var bucket = usageByModel[id] || {}
-      var input = Number(bucket.inputTokens || 0)
-      var output = Number(bucket.outputTokens || 0)
-      var cacheRead = Number(bucket.cacheReadInputTokens || 0)
-      var cacheWrite = Number(bucket.cacheCreationInputTokens || 0)
-      var total = input + output + cacheRead + cacheWrite
+      var tokens = tokenBreakdown(usageByModel[id])
       var friendly = (id.indexOf(" ") >= 0) ? id : usage.friendlyModelName(id)
 
-      if (total > 0 || all) addModel(id, friendly, total, input, output, cacheRead, cacheWrite)
+      if (tokens.total > 0 || all)
+        addModel(id, friendly, tokens.total, tokens.input, tokens.output, tokens.cacheRead, tokens.cacheWrite)
     }
 
     if (all) {
@@ -786,14 +830,8 @@ Panel {
 
       var limitList = p.limits || []
       for (var limitIndex = 0; limitIndex < limitList.length; limitIndex++) {
-        var limitEntry = limitList[limitIndex] || {}
-        var limitModel = limitEntry.modelId || limitEntry.model || limitEntry.modelName
-        if (limitModel && typeof limitModel === "object")
-          limitModel = limitModel.id || limitModel.name || limitModel.displayName
-        if (limitModel) {
-          var limitName = String(limitModel)
-          addModel(limitName, limitName, 0)
-        }
+        var limitModel = limitModelId(limitList[limitIndex], p, rows)
+        if (limitModel) addModel(limitModel, limitModel, 0)
       }
 
       var avail = p.availableModels || []
@@ -819,8 +857,9 @@ Panel {
   }
 
   function filteredModelRows() {
-    var baseRows = (root.isOverview || root.modelScope === "all") ? allModelRows() : modelRows(root.provider, true)
-    var selected = (root.isOverview || root.modelScope === "all") ? "__all__" : root.selectedModelId
+    var showAll = root.isOverview || root.modelScope === "all"
+    var baseRows = showAll ? allModelRows() : modelRows(root.provider, true)
+    var selected = showAll ? "__all__" : root.selectedModelId
     var query = (root.modelFilterText || "").trim().toLowerCase()
     var res = []
     var selectedKeys = selected === "__all__" ? [] : selectedModelKeys(root.provider, selected)
@@ -853,10 +892,7 @@ Panel {
     if (!modelId || modelId === "__all__") return "All models"
     var rows = modelRows(p, true)
     for (var i = 0; i < rows.length; i++) {
-      if (rows[i].id === modelId || rows[i].name === modelId
-          || normalizeModelKey(rows[i].id) === normalizeModelKey(modelId)
-          || normalizeModelKey(rows[i].name) === normalizeModelKey(modelId))
-        return rows[i].name
+      if (rowMatchesModel(rows[i], modelId)) return rows[i].name
     }
     return String(modelId)
   }
@@ -908,6 +944,24 @@ Panel {
     return candidates
   }
 
+  // Official brand colors for coding agents.
+  function providerBrandColor(p) {
+    if (!p) return root.foreground
+    var id = String(p.providerId || p.agentId || "").toLowerCase()
+    if (id.indexOf("antigravity") >= 0) return "#4285f4" // Google Blue
+    if (id.indexOf("claude") >= 0) return "#d97757"      // Claude Terracotta
+    if (id.indexOf("codex") >= 0) return "#10a37f"       // OpenAI Green
+    if (id.indexOf("fireworks") >= 0) return "#ff6b22"   // Fireworks Orange
+    return root.foreground
+  }
+
+  readonly property color activeBrandColor: {
+    if (root.alarming) return root.urgent
+    if (!root.isOverview && root.provider) return root.providerBrandColor(root.provider)
+    if (root.overviewAgents.length > 0) return root.providerBrandColor(root.overviewAgents[0].provider)
+    return root.foreground
+  }
+
   // Nothing to report, nothing in the bar: Bar.qml collapses a slot whose item
   // is invisible, so the icon appears the moment the first scan finds usage and
   // stays away entirely on a machine that has never run either CLI.
@@ -940,11 +994,11 @@ Panel {
 
   IpcHandler {
     target: "omarchy.agents"
-    function open(): void { root.open() }
-    function close(): void { root.close() }
-    function show(): void { root.open() }
-    function hide(): void { root.close() }
-    function toggle(): void { root.toggle() }
+    function open(): string { root.open(); return "ok" }
+    function close(): string { root.close(); return "ok" }
+    function show(): string { root.open(); return "ok" }
+    function hide(): string { root.close(); return "ok" }
+    function toggle(): string { root.toggle(); return "ok" }
     function refresh(): string { root.refreshNow(); return "ok" }
     function next(): string { root.selectTab(root.currentTabIndex + 1); return "ok" }
     function select(id: string): string { root.selectRecord(id); return "ok" }
@@ -955,11 +1009,11 @@ Panel {
 
   IpcHandler {
     target: "doji.agents"
-    function open(): void { root.open() }
-    function close(): void { root.close() }
-    function show(): void { root.open() }
-    function hide(): void { root.close() }
-    function toggle(): void { root.toggle() }
+    function open(): string { root.open(); return "ok" }
+    function close(): string { root.close(); return "ok" }
+    function show(): string { root.open(); return "ok" }
+    function hide(): string { root.close(); return "ok" }
+    function toggle(): string { root.toggle(); return "ok" }
     function refresh(): string { root.refreshNow(); return "ok" }
     function next(): string { root.selectTab(root.currentTabIndex + 1); return "ok" }
     function select(id: string): string { root.selectRecord(id); return "ok" }
@@ -973,13 +1027,25 @@ Panel {
     anchors.fill: parent
     bar: root.bar
     text: "󱚣"
+    foreground: root.activeBrandColor
     active: root.alarming
+    iconComponent: (!root.alarming && !root.isOverview && root.provider) ? barIconComponent : null
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.RightButton) root.launchAgent()
       else if (buttonCode === Qt.MiddleButton) root.selectTab(root.currentTabIndex + 1)
       else root.toggle()
     }
   }
+
+  Component {
+    id: barIconComponent
+    ProviderIcon {
+      provider: root.provider
+      iconSize: Style.bar.iconCanvas
+      anchors.centerIn: parent
+    }
+  }
+
 
   KeyboardPanel {
     id: panel
@@ -1080,7 +1146,7 @@ Panel {
                   anchors.centerIn: parent
                   visible: root.isOverview || heroMarkImage.status !== Image.Ready
                   text: button.text
-                  color: root.foreground
+                  color: root.activeBrandColor
                   font.family: root.fontFamily
                   font.pixelSize: Style.font.display
                 }
@@ -1137,12 +1203,19 @@ Panel {
                   required property var modelData
                   required property int index
 
+                  readonly property color tabBrandColor: modelData.isOverview
+                    ? Color.accent
+                    : root.providerBrandColor(root.providers[modelData.rawIndex])
+
                   text: modelData.providerName
                   tooltipText: modelData.providerName
                   selected: modelData.providerId === root.selectedProviderId
                   hasCursor: root.cursorActive && modelData.providerId === root.selectedProviderId
                   bordered: true
-                  foreground: root.foreground
+                  accent: tabBrandColor
+                  foreground: (modelData.providerId === root.selectedProviderId && !modelData.isOverview)
+                    ? tabBrandColor
+                    : root.foreground
                   fontFamily: root.fontFamily
                   fontSize: Style.font.caption
                   verticalPadding: Style.space(3)
@@ -1226,6 +1299,7 @@ Panel {
                   Button {
                     text: "5h"
                     selected: root.overviewSortMode === "session"
+                    accent: root.dojiKineticOrange
                     bordered: true
                     fontSize: Style.font.caption
                     verticalPadding: Style.space(2)
@@ -1236,6 +1310,7 @@ Panel {
                   Button {
                     text: "Weekly"
                     selected: root.overviewSortMode === "weekly"
+                    accent: root.dojiKineticOrange
                     bordered: true
                     fontSize: Style.font.caption
                     verticalPadding: Style.space(2)
@@ -1246,6 +1321,7 @@ Panel {
                   Button {
                     text: "All"
                     selected: root.overviewSortMode === "all"
+                    accent: root.dojiKineticOrange
                     bordered: true
                     fontSize: Style.font.caption
                     verticalPadding: Style.space(2)
@@ -1271,15 +1347,16 @@ Panel {
                 id: agentCard
                 required property var modelData
                 required property int index
+                readonly property color brandCol: root.providerBrandColor(modelData.provider)
                 width: overviewSection.width
                 implicitHeight: cardContent.implicitHeight + Style.space(16)
-                radius: Style.cornerRadius
+                radius: Style.cornerRadius + Style.space(2)
                 color: cardMouse.containsMouse
-                  ? Style.hoverFillFor(root.foreground, Color.accent)
+                  ? Style.hoverFillFor(root.foreground, brandCol)
                   : root.alpha(root.surface, 0.6)
                 borderSpec: cardMouse.containsMouse
-                  ? Border.flat(root.alpha(Color.accent, 0.4), 1)
-                  : Border.flat(root.alpha(root.foreground, 0.12), 1)
+                  ? Border.flat(root.alpha(brandCol, 0.5), 1)
+                  : Border.flat(root.alpha(brandCol, 0.18), 1)
 
                 Behavior on color { ColorAnimation { duration: 100 } }
 
@@ -1343,18 +1420,18 @@ Panel {
 
                       BorderSurface {
                         visible: !!modelData.tierLabel
-                        implicitWidth: tierText.implicitWidth + Style.space(8)
-                        implicitHeight: tierText.implicitHeight + Style.space(2)
+                        implicitWidth: tierText.implicitWidth + Style.space(10)
+                        implicitHeight: tierText.implicitHeight + Style.space(4)
                         anchors.verticalCenter: parent.verticalCenter
-                        radius: Style.cornerRadius
-                        color: root.alpha(root.foreground, 0.06)
-                        borderSpec: Border.flat(root.alpha(root.foreground, 0.14), 1)
+                        radius: height / 2
+                        color: root.alpha(brandCol, 0.12)
+                        borderSpec: Border.flat(root.alpha(brandCol, 0.3), 1)
 
                         Text {
                           id: tierText
                           anchors.centerIn: parent
                           text: (modelData.tierLabel || "").toUpperCase()
-                          color: root.dim
+                          color: brandCol
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption - 1
                           font.bold: true
@@ -1371,6 +1448,7 @@ Panel {
                       verticalPadding: Style.space(2)
                       horizontalPadding: Style.space(6)
                       selected: cardMouse.containsMouse
+                      accent: brandCol
                     }
                   }
 
@@ -1384,12 +1462,12 @@ Panel {
 
                     Item {
                       width: parent.width
-                      implicitHeight: Math.max(sessionLabelRow.implicitHeight, sessionPctText.implicitHeight)
+                      implicitHeight: Math.max(sessionLabelRow.implicitHeight, sessionPctBadge.implicitHeight)
 
                       Row {
                         id: sessionLabelRow
                         anchors.left: parent.left
-                        anchors.right: sessionPctText.left
+                        anchors.right: sessionPctBadge.left
                         anchors.rightMargin: Style.space(8)
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: Style.space(6)
@@ -1413,15 +1491,32 @@ Panel {
                         }
                       }
 
-                      Text {
-                        id: sessionPctText
+                      BorderSurface {
+                        id: sessionPctBadge
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        text: Math.round(modelData.sessionRemainingPercent * 100) + "% left"
-                        color: modelData.sessionPercent >= 0.9 ? root.urgent : root.foreground
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption
-                        font.bold: true
+                        implicitWidth: sessionPctText.implicitWidth + Style.space(12)
+                        implicitHeight: sessionPctText.implicitHeight + Style.space(4)
+                        radius: height / 2
+                        color: modelData.sessionPercent >= 0.9
+                          ? root.alpha(root.urgent, 0.16)
+                          : root.alpha(brandCol, 0.14)
+                        borderSpec: Border.flat(
+                          modelData.sessionPercent >= 0.9
+                            ? root.alpha(root.urgent, 0.4)
+                            : root.alpha(brandCol, 0.3),
+                          1
+                        )
+
+                        Text {
+                          id: sessionPctText
+                          anchors.centerIn: parent
+                          text: Math.round(modelData.sessionRemainingPercent * 100) + "% left"
+                          color: modelData.sessionPercent >= 0.9 ? root.urgent : brandCol
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption
+                          font.bold: true
+                        }
                       }
                     }
 
@@ -1429,6 +1524,7 @@ Panel {
                       width: parent.width
                       value: modelData.sessionPercent
                       alarming: modelData.sessionPercent >= 0.9
+                      accentColor: brandCol
                     }
                   }
 
@@ -1442,12 +1538,12 @@ Panel {
 
                     Item {
                       width: parent.width
-                      implicitHeight: Math.max(weeklyLabelRow.implicitHeight, weeklyPctText.implicitHeight)
+                      implicitHeight: Math.max(weeklyLabelRow.implicitHeight, weeklyPctBadge.implicitHeight)
 
                       Row {
                         id: weeklyLabelRow
                         anchors.left: parent.left
-                        anchors.right: weeklyPctText.left
+                        anchors.right: weeklyPctBadge.left
                         anchors.rightMargin: Style.space(8)
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: Style.space(6)
@@ -1471,15 +1567,32 @@ Panel {
                         }
                       }
 
-                      Text {
-                        id: weeklyPctText
+                      BorderSurface {
+                        id: weeklyPctBadge
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        text: Math.round(modelData.weeklyRemainingPercent * 100) + "% left"
-                        color: modelData.weeklyPercent >= 0.9 ? root.urgent : root.foreground
-                        font.family: root.fontFamily
-                        font.pixelSize: Style.font.caption
-                        font.bold: true
+                        implicitWidth: weeklyPctText.implicitWidth + Style.space(12)
+                        implicitHeight: weeklyPctText.implicitHeight + Style.space(4)
+                        radius: height / 2
+                        color: modelData.weeklyPercent >= 0.9
+                          ? root.alpha(root.urgent, 0.16)
+                          : root.alpha(brandCol, 0.14)
+                        borderSpec: Border.flat(
+                          modelData.weeklyPercent >= 0.9
+                            ? root.alpha(root.urgent, 0.4)
+                            : root.alpha(brandCol, 0.3),
+                          1
+                        )
+
+                        Text {
+                          id: weeklyPctText
+                          anchors.centerIn: parent
+                          text: Math.round(modelData.weeklyRemainingPercent * 100) + "% left"
+                          color: modelData.weeklyPercent >= 0.9 ? root.urgent : brandCol
+                          font.family: root.fontFamily
+                          font.pixelSize: Style.font.caption
+                          font.bold: true
+                        }
                       }
                     }
 
@@ -1487,6 +1600,7 @@ Panel {
                       width: parent.width
                       value: modelData.weeklyPercent
                       alarming: modelData.weeklyPercent >= 0.9
+                      accentColor: brandCol
                     }
                   }
 
@@ -1681,6 +1795,7 @@ Panel {
               width: parent.width
               value: balanceSection.ratio
               alarming: root.balanceAlarming
+              accentColor: root.provider ? root.providerBrandColor(root.provider) : root.dojiKineticOrange
             }
 
             Text {
@@ -1956,7 +2071,7 @@ Panel {
       visible: iconImg.status !== Image.Ready
       anchors.centerIn: parent
       text: (iconComp.provider && iconComp.provider.providerName) ? iconComp.provider.providerName.charAt(0) : "󱚣"
-      color: root.foreground
+      color: root.providerBrandColor(iconComp.provider)
       font.family: root.fontFamily
       font.pixelSize: iconComp.iconSize * 0.8
       font.bold: true
@@ -2013,6 +2128,7 @@ Panel {
       width: parent.width
       value: limitRow.window ? limitRow.window.percent : -1
       alarming: limitRow.alarming
+      accentColor: root.provider ? root.providerBrandColor(root.provider) : root.foreground
     }
 
     Text {
@@ -2030,11 +2146,13 @@ Panel {
   }
 
   // Rounded track showing the percentage of the allowance used.
+  // Neo-tactile grooved bed, custom kinetic accent color, and leading-edge bead.
   component Meter: Item {
     id: meter
     property real value: -1
     property bool alarming: false
-    property real thickness: Math.max(Style.space(4), Math.round(Style.spacing.controlHeight * 0.14))
+    property color accentColor: root.foreground
+    property real thickness: Math.max(Style.space(5), Math.round(Style.spacing.controlHeight * 0.16))
 
     implicitHeight: thickness
 
@@ -2042,26 +2160,41 @@ Panel {
       id: meterTrack
       anchors.fill: parent
       radius: height / 2
-      color: root.track
-    }
+      color: root.alpha(root.surface, 0.85)
+      border.color: root.alpha(root.foreground, 0.08)
+      border.width: 1
 
-    Rectangle {
-      anchors.left: meterTrack.left
-      anchors.verticalCenter: meterTrack.verticalCenter
-      height: meterTrack.height
-      radius: meterTrack.radius
-      width: meterTrack.width * root.clamp(meter.value, 0, 1)
-      color: meter.alarming ? root.urgent : root.foreground
+      Rectangle {
+        id: meterFill
+        anchors.left: parent.left
+        anchors.verticalCenter: parent.verticalCenter
+        height: parent.height
+        radius: meterTrack.radius
+        width: parent.width * root.clamp(meter.value, 0, 1)
+        color: meter.alarming ? root.dojiKineticOrange : (meter.accentColor !== root.foreground ? meter.accentColor : root.foreground)
 
-      Behavior on width {
-        NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+        Behavior on width {
+          NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+        }
+
+        // Tactile micro-indicator at leading edge
+        Rectangle {
+          visible: meterFill.width > parent.height
+          anchors.right: parent.right
+          anchors.rightMargin: 1
+          anchors.verticalCenter: parent.verticalCenter
+          width: Math.max(2, parent.height - 2)
+          height: Math.max(2, parent.height - 2)
+          radius: width / 2
+          color: "#FFFFFF"
+          opacity: 0.85
+        }
       }
     }
-
   }
 
   // One row per day: label, bar, tokens. Today is picked out in full
-  // foreground so the week reads as a run-up to right now.
+  // foreground / hyper-lime so the week reads as a run-up to right now.
   component DayRow: Item {
     id: dayRow
     property var day: null
@@ -2090,9 +2223,11 @@ Panel {
       anchors.leftMargin: Style.space(8)
       anchors.rightMargin: Style.space(10)
       anchors.verticalCenter: parent.verticalCenter
-      height: Math.max(Style.space(4), Math.round(Style.spacing.controlHeight * 0.14))
+      height: Math.max(Style.space(5), Math.round(Style.spacing.controlHeight * 0.16))
       radius: height / 2
-      color: root.track
+      color: root.alpha(root.surface, 0.85)
+      border.color: root.alpha(root.foreground, 0.08)
+      border.width: 1
 
       Rectangle {
         anchors.left: parent.left
@@ -2100,10 +2235,10 @@ Panel {
         height: parent.height
         radius: parent.radius
         width: parent.width * root.clamp(dayRow.ratio, 0, 1)
-        color: dayRow.today ? root.foreground : root.alpha(root.foreground, 0.55)
+        color: dayRow.today ? root.dojiHyperLime : root.alpha(root.foreground, 0.55)
 
         Behavior on width {
-          NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+          NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
         }
       }
     }
@@ -2112,7 +2247,7 @@ Panel {
       id: dayValue
       textFormat: Text.PlainText
       text: usage.formatTokenCount(dayRow.day ? Number(dayRow.day.messageCount || 0) : 0)
-      color: dayRow.today ? root.foreground : root.dim
+      color: dayRow.today ? (root.activeBrandColor !== root.foreground ? root.activeBrandColor : root.dojiHyperLime) : root.dim
       font.family: root.fontFamily
       font.pixelSize: Style.font.caption
       font.bold: true
